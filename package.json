@@ -1,0 +1,19 @@
+{
+  "name": "maximum-crm-api",
+  "version": "0.1.0",
+  "description": "",
+  "main": "max-crm-app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wailorman/maximum-crm-api.git"
+  },
+  "author": "Sergey Popov <wailorman@gmail.com>",
+  "license": "Attribution-NonCommercial 4.0 International",
+  "bugs": {
+    "url": "https://github.com/wailorman/maximum-crm-api/issues"
+  },
+  "homepage": "https://github.com/wailorman/maximum-crm-api"
+}
