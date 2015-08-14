@@ -9,11 +9,16 @@ describe('Coaches http', function () {
 
     var createdCoachId;
     const urlPrefix = '/v0.2/coaches/';
+    var clearCollection;
 
     // clear database
     before(function (done) {
 
-        CoachModel.find({}).remove(done);
+        clearCollection = function (done) {
+            CoachModel.find({}).remove(done);
+        };
+
+        clearCollection(done);
 
     });
 
@@ -119,6 +124,48 @@ describe('Coaches http', function () {
                     .expect(404, done)
 
             })
+
+    });
+
+    describe('validation', function () {
+
+        beforeEach(function (done) {
+            clearCollection(done);
+        } );
+
+        it('should resolve with error if name did not passed', function (done) {
+
+            request(app)
+                .post(urlPrefix)
+                .send({})
+                .expect(400)
+                .end(function (err, res) {
+                    /* jshint expr:true */
+                    /** @namespace res.body.errors */
+                    expect(res.body.errors.name.kind).to.eql('required');
+                    done();
+                });
+
+        });
+
+        it( 'should not create two identical objects', function (done) {
+
+            request(app)
+                .post(urlPrefix)
+                .send({name: 'Tommy'})
+                .expect(201)
+                .end(function (err, res) {
+
+                    expect(res.body.name).to.eql('Tommy');
+
+                    request(app)
+                        .post(urlPrefix)
+                        .send({name: 'Tommy'})
+                        .expect(400, done);
+
+                });
+
+        } );
 
     });
 
