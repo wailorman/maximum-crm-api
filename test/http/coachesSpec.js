@@ -37,7 +37,7 @@ describe('Coaches http', function () {
 
     });
 
-    it('should create new coach and then find him', function (done) {
+    it('should create new object and then find him', function (done) {
 
         request(app)
             .post(urlPrefix)
@@ -54,7 +54,7 @@ describe('Coaches http', function () {
 
                 createdCoachId = res.body._id;
 
-                // is new coach available to GET
+                // is new object available to GET
                 request(app)
                     .get(urlPrefix + res.body._id)
                     .expect(200, done);
@@ -62,7 +62,7 @@ describe('Coaches http', function () {
 
     });
 
-    it('should find new coach in list of coaches', function (done) {
+    it('should find new object in list of objects', function (done) {
 
         request(app)
             .get(urlPrefix)
@@ -72,7 +72,7 @@ describe('Coaches http', function () {
                 // no errors should happened
                 expect(err).to.be.a('null');
 
-                // new coach should be found
+                // new object should be found
                 expect(res.body).to.be.an('array').and.have.property('length', 1);
                 expect(res.body[0].name).to.eql('Tommy');
 
