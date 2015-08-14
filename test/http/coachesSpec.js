@@ -105,4 +105,21 @@ describe('Coaches http', function () {
 
     });
 
+    it('should delete object', function (done) {
+
+        request(app)
+            .del(urlPrefix + createdCoachId)
+            .expect(204) // No Content
+            .end(function (err) {
+                expect(err).to.be.a('null');
+
+                // check nonexistence
+                request(app)
+                    .get(urlPrefix + createdCoachId)
+                    .expect(404, done)
+
+            })
+
+    });
+
 });
