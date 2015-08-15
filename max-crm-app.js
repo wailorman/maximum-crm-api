@@ -6,6 +6,7 @@ var app = express();
 var router = express.Router();
 
 var CoachModel = require('./models/coach.js');
+var HallModel = require('./models/hall.js');
 
 ///////////////////////
 
@@ -22,6 +23,7 @@ const restMongooseConfig = {
 app.use( bodyParser.json() );
 
 restMongoose.serve(app, CoachModel, restMongooseConfig);
+restMongoose.serve(app, HallModel, restMongooseConfig);
 
 ///////////////////////
 
