@@ -180,9 +180,28 @@ describe('Lessons http', function () {
 
         describe('time', function () {
 
-            var tryToPost;
+            // every suite mocked lesson document is recreating
 
-            it('error if time not defined');
+            var tryToPost = function () {
+                return request(app)
+                    .post(urlPrefix)
+                    .send(mockedLesson)
+            };
+
+            it('error if time not defined', function (done) {
+
+                mockedLesson.time = undefined;
+
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        // error should be of ValidationError
+                        expect( res.body.name).to.eql('ValidationError');
+
+
+                    });
+            });
 
             it('error if time.start not defined');
 

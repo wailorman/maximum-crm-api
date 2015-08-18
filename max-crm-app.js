@@ -8,6 +8,7 @@ var router = express.Router();
 var CoachModel = require('./models/coach.js');
 var HallModel = require('./models/hall.js');
 var GroupModel = require('./models/group.js');
+var LessonModel = require('./models/lesson');
 
 ///////////////////////
 
@@ -26,6 +27,7 @@ app.use( bodyParser.json() );
 restMongoose.serve(app, CoachModel, restMongooseConfig);
 restMongoose.serve(app, HallModel, restMongooseConfig);
 restMongoose.serve(app, GroupModel, restMongooseConfig);
+restMongoose.serve(app, LessonModel, restMongooseConfig);
 
 ///////////////////////
 
