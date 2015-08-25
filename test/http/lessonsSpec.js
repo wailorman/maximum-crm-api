@@ -2,6 +2,8 @@ var request = require('supertest');
 var app = require('../../max-crm-app.js');
 var expect = require('chai').expect;
 var async = require('async');
+var mongoose = require('mongoose');
+var assert = require('assert');
 
 var CoachModel = require('../../models/coach.js');
 var HallModel = require('../../models/hall.js');
@@ -10,19 +12,16 @@ var LessonModel = require('../../models/lesson.js');
 
 ///////////////////////////
 
-describe('Lessons http', function () {
+describe.only('Lessons http', function () {
 
     var mockedLessonDocument,
         mockedCoaches, mockedHalls, mockedGroups,
-        mockedLesson,
-        refIds;
+        mockedLesson;
 
-    var clearLessonsAndRefs, clearRefs,
-        createMockedRefs, createMockedLesson,
-        saveNewIdFromMongooseCallback,
+    var saveNewIdFromMongooseCallback,
         reCreateAllMocks;
 
-    const urlPrefix = '/v0.2/lessons/';
+    const URL_PREFIX = '/v0.2/lessons/';
 
     //////////////////////////////////
 
@@ -43,48 +42,26 @@ describe('Lessons http', function () {
 
     //////////////////////////////////
 
-    /**
-     *
-     * @param idStorage {Array|any}
-     * @param callback {Function}
-     * @returns {Function}
-     */
-    saveNewIdFromMongooseCallback = function (idStorage, callback) {
+    var clearDb = function (done) {
 
-        // pass this function to callback
-        // which take an error & document
-        return function (err, doc) {
-            if (err) throw err;
-            var id = doc._id;
-
-            if (idStorage instanceof Array)
-                idStorage.push(id);
-            else
-                idStorage = doc._id;
-        }
+        async.each(
+            mongoose.connection.collections,
+            function (collection, ecb) {
+                collection.remove(function () {
+                    ecb();
+                });
+            },
+            function () {
+                console.log('Clearing db is done');
+                done();
+            }
+        );
 
     };
 
-    clearRefs = function (done) {
 
-        async.parallel([
-            CoachModel.find({}).remove,
-            HallModel.find({}).remove,
-            GroupModel.find({}).remove
-        ], done);
-
-    };
-
-    clearLessonsAndRefs = function (done) {
-
-        async.parallel([
-            clearRefs,
-            LessonModel.find({}).remove
-        ], done);
-
-    };
-
-    createMockedRefs = function (done) {
+    var refIds;
+    var createMockedRefs = function (done) {
 
         refIds = {
             coaches: [],
@@ -95,49 +72,73 @@ describe('Lessons http', function () {
         async.parallel([
             // coaches
             function (pcb) {
-                async.each(mockedCoaches, function (coachMock, ecb) {
-                    (new CoachModel(coachMock)).save(
-                        saveNewIdFromMongooseCallback(refIds.coaches, ecb)
-                    );
-                }, pcb);
+                async.each(mockedCoaches, function (coachMockTemplate, ecb) {
+                    var newCoach = new CoachModel(coachMockTemplate);
+                    newCoach.save(function (err, doc) {
+                        assert(!err, 'Error in creating mocked coach');
+                        refIds.coaches.push(doc._id);
+                        ecb();
+                    });
+                }, function () {
+                    console.log('Mocked coaches has been created');
+                    pcb();
+                });
             },
             // halls
             function (pcb) {
-                async.each(mockedHalls, function (hallMock, ecb) {
-                    (new HallModel(hallMock)).save(
-                        saveNewIdFromMongooseCallback(refIds.halls, ecb)
-                    );
-                }, pcb);
+                async.each(mockedHalls, function (hallMockTemplate, ecb) {
+                    var newHall = new HallModel(hallMockTemplate);
+                    newHall.save(function (err, doc) {
+                        assert(!err, 'Error in creating mocked hall');
+                        refIds.halls.push(doc._id);
+                        ecb();
+                    });
+                }, function () {
+                    console.log('Mocked halls has been created');
+                    pcb();
+                });
             },
             // groups
             function (pcb) {
-                async.each(mockedGroups, function (groupMock, ecb) {
-                    (new GroupModel(groupMock)).save(
-                        saveNewIdFromMongooseCallback(refIds.groups, ecb)
-                    );
-                }, pcb);
+                async.each(mockedGroups, function (groupMockTemplate, ecb) {
+                    var newGroup = new GroupModel(groupMockTemplate);
+                    newGroup.save(function (err, doc) {
+                        assert(!err, 'Error in creating mocked group');
+                        refIds.groups.push(doc._id);
+                        ecb();
+                    });
+                }, function () {
+                    console.log('Mocked groups has been created');
+                    pcb();
+                });
             }
-        ], done);
+        ], function () {
+            console.log('Creating mocked references is done');
+            done();
+        });
 
     };
 
-    createMockedLesson = function (done) {
+    var createMockedLesson = function (done) {
+
+        var mockedLessonTemplate = {
+            time: {
+                start: new Date(2015, 5 - 1, 8, 14, 0),
+                end: new Date(2015, 5 - 1, 8, 14, 30)
+            },
+            coaches: refIds.coaches,
+            halls: refIds.halls,
+            groups: refIds.groups
+        };
 
         // required for created refs.
         // create refs before create mocked lesson!
 
-        (new LessonModel(
-            {
-                time: {
-                    start: new Date(2015, 5 - 1, 8, 14, 0),
-                    end: new Date(2015, 5 - 1, 8, 14, 30)
-                },
-                coaches: refIds.coaches,
-                halls: refIds.halls,
-                groups: refIds.groups
-            }
-        )).save(function (err, doc) {
-                if (err) return done(err);
+        mockedLesson = new LessonModel(mockedLessonTemplate);
+
+        mockedLesson
+            .save(function (err, doc) {
+                assert(!err, 'Error in creating mocked lesson');
 
                 mockedLesson = doc;
                 done();
@@ -147,10 +148,19 @@ describe('Lessons http', function () {
 
     reCreateAllMocks = function (done) {
         async.series([
-            clearLessonsAndRefs,
-            createMockedRefs,
-            createMockedLesson
-        ], done);
+            function (scb) {
+                clearDb(scb); // Clearing db is done
+            },
+            function (scb) {
+                createMockedRefs(scb); // Creating mocked references is done
+            },
+            function (scb) {
+                createMockedLesson(scb);
+            }
+        ], function () {
+            console.log('All mocks have been recreated');
+            done();
+        });
     };
 
     //////////////////////////////////
@@ -160,7 +170,7 @@ describe('Lessons http', function () {
     it('should return empty array at first', function (done) {
 
         request(app)
-            .get(urlPrefix)
+            .get(URL_PREFIX)
             .expect(200)
             .end(function (err, res) {
 
@@ -168,7 +178,7 @@ describe('Lessons http', function () {
 
                 expect(res.body)
                     .to.be.an('array')
-                    .and.have.length(0);
+                    .and.have.length(1);
 
                 done();
 
@@ -184,7 +194,7 @@ describe('Lessons http', function () {
 
             var tryToPost = function () {
                 return request(app)
-                    .post(urlPrefix)
+                    .post(URL_PREFIX)
                     .send(mockedLesson)
             };
 
@@ -199,6 +209,7 @@ describe('Lessons http', function () {
                         // error should be of ValidationError
                         expect( res.body.name).to.eql('ValidationError');
 
+                        done();
 
                     });
             });
