@@ -14,11 +14,9 @@ var LessonModel = require('../../models/lesson.js');
 
 describe.only('Lessons http', function () {
 
-    var mockedLessonDocument,
-        mockedCoaches, mockedHalls, mockedGroups;
+    var mockedCoaches, mockedHalls, mockedGroups;
 
-    var saveNewIdFromMongooseCallback,
-        reCreateAllMocks;
+    var reCreateAllMocks;
 
     const URL_PREFIX = '/v0.2/lessons/';
 
