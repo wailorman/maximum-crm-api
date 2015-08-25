@@ -1,21 +1,21 @@
 var request = require('supertest');
 var app = require('../../max-crm-app.js');
 var expect = require('chai').expect;
-var HallModel = require('../../models/group.js');
+var GroupModel = require('../../models/group.js');
 
 ///////////////////////////
 
-describe('Halls http', function () {
+describe('Groups http', function () {
 
     var createdObjectId;
-    const urlPrefix = '/v0.2/halls/';
+    const urlPrefix = '/v0.2/groups/';
     var clearCollection;
 
     // clear database
     before(function (done) {
 
         clearCollection = function (done) {
-            HallModel.find({}).remove(done);
+            GroupModel.find({}).remove(done);
         };
 
         clearCollection(done);
