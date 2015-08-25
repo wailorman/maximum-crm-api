@@ -303,9 +303,58 @@ describe.only('Lessons http', function () {
 
             });
 
-            it('error if time.start equals to .end');
+            it('success if time.end is greater than .end', function (done) {
 
-            it('error if time.start greater than .end');
+                // lessonMock already has correct time
+
+                tryToPost()
+                    .expect(200)
+                    .end(function () {
+                        done();
+                    });
+
+            });
+
+            it('error if time.start equals to .end', function (done) {
+
+                lessonMock.time.end = lessonMock.time.start;
+
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        expect(res.body.name).to.eql('ValidationError');
+
+                        expect(res.body.errors['time.end']).to.exist;
+                        expect(res.body.errors['time.end'].message).to.contain('should be greater than');
+
+                        done();
+
+                    });
+
+            });
+
+            it('error if time.start greater than .end', function (done) {
+
+                var originalTime = lessonMock.time;
+
+                lessonMock.time.start = originalTime.end;
+                lessonMock.time.end = originalTime.start;
+
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        expect(res.body.name).to.eql('ValidationError');
+
+                        expect(res.body.errors['time.end']).to.exist;
+                        expect(res.body.errors['time.end'].message).to.contain('should be greater than');
+
+                        done();
+
+                    });
+
+            });
 
         });
 
