@@ -15,8 +15,7 @@ var LessonModel = require('../../models/lesson.js');
 describe.only('Lessons http', function () {
 
     var mockedLessonDocument,
-        mockedCoaches, mockedHalls, mockedGroups,
-        mockedLesson;
+        mockedCoaches, mockedHalls, mockedGroups;
 
     var saveNewIdFromMongooseCallback,
         reCreateAllMocks;
@@ -60,9 +59,14 @@ describe.only('Lessons http', function () {
     };
 
 
-    var refIds;
+    var refIds = {
+        coaches: [],
+        halls: [],
+        groups: []
+    };
     var createMockedRefs = function (done) {
 
+        // init again
         refIds = {
             coaches: [],
             halls: [],
@@ -119,9 +123,13 @@ describe.only('Lessons http', function () {
 
     };
 
-    var createMockedLesson = function (done) {
+    var getLessonTemplate = function () {
 
-        var mockedLessonTemplate = {
+        assert(refIds.coaches.length > 0, 'Mocked coaches required');
+        assert(refIds.halls.length > 0, 'Mocked halls required');
+        assert(refIds.groups.length > 0, 'Mocked groups required');
+
+        return {
             time: {
                 start: new Date(2015, 5 - 1, 8, 14, 0),
                 end: new Date(2015, 5 - 1, 8, 14, 30)
@@ -131,10 +139,16 @@ describe.only('Lessons http', function () {
             groups: refIds.groups
         };
 
+    };
+
+    var createMockedLesson = function (done) {
+
+        var mockedLessonTemplate = getLessonTemplate();
+
         // required for created refs.
         // create refs before create mocked lesson!
 
-        mockedLesson = new LessonModel(mockedLessonTemplate);
+        var mockedLesson = new LessonModel(mockedLessonTemplate);
 
         mockedLesson
             .save(function (err, doc) {
@@ -188,37 +202,106 @@ describe.only('Lessons http', function () {
 
     describe('path validation', function () {
 
+        var lessonMock;
+
+        beforeEach(function () {
+            lessonMock = getLessonTemplate();
+        });
+
         describe('time', function () {
 
-            // every suite mocked lesson document is recreating
+            // every suite mocked lesson is recreating
 
             var tryToPost = function () {
                 return request(app)
                     .post(URL_PREFIX)
-                    .send(mockedLesson)
+                    .send(lessonMock)
             };
 
             it('error if time not defined', function (done) {
 
-                mockedLesson.time = undefined;
+                lessonMock.time = undefined;
 
                 tryToPost()
                     .expect(400)
                     .end(function (err, res) {
 
                         // error should be of ValidationError
-                        expect( res.body.name).to.eql('ValidationError');
+                        expect(res.body.name).to.eql('ValidationError');
+
+                        expect(res.body.errors['time.start'].kind).to.eql('required');
+                        expect(res.body.errors['time.end'].kind).to.eql('required');
 
                         done();
 
                     });
             });
 
-            it('error if time.start not defined');
+            it('error if time.start not defined', function (done) {
 
-            it('error if time.end not defined');
+                lessonMock.time.start = undefined;
 
-            it('error if time.start or .end not Date');
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        // error should be of ValidationError
+
+                        expect(res.body.name).to.eql('ValidationError');
+
+                        expect(res.body.errors['time.start']).to.exist;
+                        expect(res.body.errors['time.end']).not.to.exist;
+
+                        done();
+
+                    });
+
+            });
+
+            it('error if time.end not defined', function (done) {
+
+                lessonMock.time.end = undefined;
+
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        // error should be of ValidationError
+                        expect(res.body.name).to.eql('ValidationError');
+
+
+                        expect(res.body.errors['time.start']).not.to.exist;
+                        expect(res.body.errors['time.end']).to.exist;
+
+                        done();
+
+                    });
+
+            });
+
+            it('error if time.start or .end not Date', function (done) {
+
+                lessonMock.time = {
+                    start: 'hello',
+                    end: 'I am Ben'
+                };
+
+                tryToPost()
+                    .expect(400)
+                    .end(function (err, res) {
+
+                        // error should be of ValidationError
+                        expect(res.body.name).to.eql('ValidationError');
+
+
+                        expect(res.body.errors['time.start'].kind).to.eql('Date');
+                        expect(res.body.errors['time.end'].kind).to.eql('Date');
+
+                        done();
+
+                    });
+
+            });
 
             it('error if time.start equals to .end');
 
