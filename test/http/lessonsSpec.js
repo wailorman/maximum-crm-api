@@ -1,3 +1,5 @@
+require('sugar');
+
 var request = require('supertest');
 var app = require('../../max-crm-app.js');
 var expect = require('chai').expect;
@@ -9,6 +11,13 @@ var CoachModel = require('../../models/coach.js');
 var HallModel = require('../../models/hall.js');
 var GroupModel = require('../../models/group.js');
 var LessonModel = require('../../models/lesson.js');
+
+var models = {
+    coach: CoachModel,
+    hall: HallModel,
+    group: GroupModel,
+    lesson: LessonModel
+};
 
 ///////////////////////////
 
@@ -202,19 +211,18 @@ describe.only('Lessons http', function () {
 
         var lessonMock;
 
+        var tryToPost = function () {
+            return request(app)
+                .post(URL_PREFIX)
+                .send(lessonMock)
+        };
+
         beforeEach(function () {
+            // every suite mocked lesson is recreating
             lessonMock = getLessonTemplate();
         });
 
         describe('time', function () {
-
-            // every suite mocked lesson is recreating
-
-            var tryToPost = function () {
-                return request(app)
-                    .post(URL_PREFIX)
-                    .send(lessonMock)
-            };
 
             it('error if time not defined', function (done) {
 
@@ -355,6 +363,100 @@ describe.only('Lessons http', function () {
             });
 
         });
+
+        /**
+         * @param refName {string} Singular, lower case path name
+         */
+        var referencesSpecs = function (refName) {
+
+            var RefModel;
+            var refNamePluralized = refName.pluralize();
+
+            return function () {
+
+                // make check of passed reference name
+                before(function () {
+
+                    // should be defined in refIds object
+                    assert(refIds[refNamePluralized],
+                        'Reference ' + refNamePluralized + ' not defined in refIds object');
+
+                    assert(models && typeof models === 'object',
+                        'models object should be defined');
+
+                    // model of particular reference should be defined in this file
+                    assert(models[refName],
+                        refName + ' model is not defined in models object');
+
+                    RefModel = models[refName];
+
+                });
+
+                it('should create lesson with existent ' + refName, function (done) {
+
+                    lessonMock[refNamePluralized] = refIds[refNamePluralized];
+
+                    tryToPost()
+                        .expect(201)
+                        .end(function (err, res) {
+
+                            // should resolve created lesson object
+                            expect(res.body[refNamePluralized][0])
+                                .to.eql(refIds[refNamePluralized][0].toString());
+
+                            done();
+
+                        });
+
+                });
+
+                it('should not create lesson with nonexistent ' + refName, function (done) {
+
+                    lessonMock[refNamePluralized] = ['000000000000000000000000'];
+
+                    tryToPost()
+                        .expect(400)
+                        .end(function (err, res) {
+
+                            expect(res.body.name).to.eql('ValidationError');
+
+                            // path should have validation error
+                            expect(res.body.errors[refNamePluralized].message)
+                                .to.eql("Some refs in `" + refNamePluralized + "` aren't exist");
+
+                            done();
+
+                        });
+
+                });
+
+                it('should not create lesson if at least one ' + refName + ' isn\'t exists', function (done) {
+
+                    lessonMock[refNamePluralized] = refIds[refNamePluralized];
+                    lessonMock[refNamePluralized].push('000000000000000000000000'); // add nonexistent ref
+
+                    tryToPost()
+                        .expect(400)
+                        .end(function (err, res) {
+
+                            expect(res.body.name).to.eql('ValidationError');
+
+                            // path should have validation error
+                            expect(res.body.errors[refNamePluralized].message)
+                                .to.eql("Some refs in `" + refNamePluralized + "` aren't exist");
+
+                            done();
+
+                        });
+
+                });
+
+            };
+        };
+
+        describe('coaches', referencesSpecs('coach'));
+        describe('halls', referencesSpecs('hall'));
+        describe('groups', referencesSpecs('group'));
 
     });
 
