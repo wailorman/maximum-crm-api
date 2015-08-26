@@ -75,8 +75,12 @@ module.exports.checkRefExistence = function (Model) {
         // mongoose built-in validator promise that all items in array are ObjectIds.
         assert(isAllItemsInArrayAreObjectIds(val), 'Some item(s) of val array is not ObjectId');
 
+        // we have no reason to call mongo if no refs passed
+        if ( val.length === 0 )
+            return next(true); // and it's valid refs array!
+
         // get all documents via $or.
-        Model.find({$or: val}).exec(function (err, docs) {
+        Model.find({_id: {$in: val}}).exec(function (err, docs) {
             assert.ifError(err);
 
             // if count of resolved docs == val.length -- all refs are exist
